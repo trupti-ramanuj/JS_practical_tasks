@@ -84,6 +84,7 @@ async function task4() {
         console.error('Error:', err.message);
     }
 }
+task4();
 
 async function task5() {
     const url = 'https://jsonplaceholder.typicode.com/todos';
@@ -110,4 +111,4 @@ async function task5() {
     }
 }
 
-task5()
+task5();
