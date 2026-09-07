@@ -1,60 +1,69 @@
 async function request(url, options = {}, retries = 3) {
-    const { timeout = 8000, headers = {}, token, body, ...customOptions } = options;
+    const timeout = options.timeout || 8000;
+    const headers = { ...(options.headers || {}) };
+    const token = options.token;
+    const body = options.body;
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    let requestBody = body;
+    if (body && typeof body === 'object' && !(body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+        requestBody = JSON.stringify(body);
+    }
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
-
-        const mergedHeaders = { ...headers };
-        if (token) mergedHeaders['Authorization'] = `Bearer ${token}`;
-
-        let formattedBody = body;
-        if (body && !(body instanceof FormData) && typeof body === 'object') {
-            mergedHeaders['Content-Type'] = 'application/json';
-            formattedBody = JSON.stringify(body);
-        }
+        const timer = setTimeout(() => controller.abort(), timeout);
 
         try {
-            const res = await fetch(url, {
-                ...customOptions,
-                headers: mergedHeaders,
-                body: formattedBody,
+            const response = await fetch(url, {
+                ...options,
+                headers,
+                body: requestBody,
                 signal: controller.signal
             });
 
-            if (!res.ok) {
-                if (res.status === 429 && attempt < retries) {
-                    const retryAfter = Number(res.headers.get('Retry-After')) || (attempt + 1) * 1000;
-                    await new Promise(resolve => setTimeout(resolve, retryAfter));
-                    continue;
-                }
-                throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+            if (response.ok) {
+                return await response.json();
             }
 
-            return await res.json();
-        } catch (err) {
-            if (err.name === 'AbortError') throw new Error(`Request timed out after ${timeout}ms`);
-            if (attempt < retries && err.message.includes('429')) {
+            if (response.status === 429 && attempt < retries) {
+                const waitTime = Number(response.headers.get('Retry-After')) || (attempt + 1) * 1000;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue;
+            }
+
+            throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(`Request timed out after ${timeout}ms`);
+            }
+
+            if (attempt < retries && error.message.includes('429')) {
                 await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
                 continue;
             }
-            throw err;
+
+            throw error;
         } finally {
-            clearTimeout(id);
+            clearTimeout(timer);
         }
     }
 }
 
 async function task80() {
-    let stats = { successfulRequests: 0, failedRequests: 0 };
+    const stats = { successfulRequests: 0, failedRequests: 0 };
 
     const trackedClient = async (url, options) => {
         try {
             const res = await request(url, options);
-            stats = { ...stats, successfulRequests: stats.successfulRequests + 1 };
+            stats.successfulRequests++;
             return res;
         } catch (err) {
-            stats = { ...stats, failedRequests: stats.failedRequests + 1 };
+            stats.failedRequests++;
             throw err;
         }
     };
@@ -71,33 +80,47 @@ async function task80() {
         email: rawUser.email
     };
 
-    const { products: rawProducts } = await trackedClient('https://dummyjson.com/products', { method: 'GET', token });
+    const productResponse = await trackedClient('https://dummyjson.com/products', { method: 'GET', token });
+    const rawProducts = productResponse.products;
 
     const total = rawProducts.length;
-    const available = rawProducts.filter(p => (p.stock || 0) > 0).length;
-    const unavailable = rawProducts.filter(p => (p.stock || 0) <= 0).length;
+    let available = 0;
+    let unavailable = 0;
+    let totalPrice = 0;
 
-    const totalPrice = rawProducts.reduce((sum, p) => sum + p.price, 0);
+    for (const product of rawProducts) {
+        if ((product.stock || 0) > 0) {
+            available++;
+        } else {
+            unavailable++;
+        }
+        totalPrice += product.price;
+    }
+
     const averagePrice = total ? Number((totalPrice / total).toFixed(2)) : 0;
 
-    const sortedProducts = [...rawProducts].sort((a, b) => b.price - a.price);
-    const [highestPriced] = sortedProducts;
-    const lowestPriced = sortedProducts[sortedProducts.length - 1];
+    let hp = rawProducts[0];
+    let lp = rawProducts[0];
 
-    const finalDashboard = {
+    for (const product of rawProducts) {
+        if (product.price > hp.price) hp = product;
+        if (product.price < lp.price) lp = product;
+    }
+
+    const final = {
         authenticatedUser,
         products: {
             total,
             available,
             unavailable,
             averagePrice,
-            highestPriced: { id: highestPriced?.id, title: highestPriced?.title, price: highestPriced?.price },
-            lowestPriced: { id: lowestPriced?.id, title: lowestPriced?.title, price: lowestPriced?.price }
+            highestPriced: { id: hp?.id, title: hp?.title, price: hp?.price },
+            lowestPriced: { id: lp?.id, title: lp?.title, price: lp?.price }
         },
         apiStatistics: stats
     };
 
-    console.log(JSON.stringify(finalDashboard, null, 2));
+    console.log(JSON.stringify(final, null, 2));
 }
 
 task80();
