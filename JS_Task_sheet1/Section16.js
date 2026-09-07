@@ -109,7 +109,7 @@ const task94 = products.map(p =>
 console.log(task94);
 
 const task95 = products.map(p => ({
-    ...p, tags: p.filter(tag => tag !== "wireless")
+    ...p, tags: p.tags.filter(tag => tag !== "wireless")
 }));
 console.log(task95);
 

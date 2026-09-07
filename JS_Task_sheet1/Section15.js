@@ -100,52 +100,155 @@ const products = [
         tags: ["tablet", "apple", "portable"]
     }
 ];
-const task86 = [...products].sort((a, b) => b.rating - a.rating).slice(0, 3);
-console.log(task86);
+function displayProducts(productList) {
+    return [...productList];
+}
 
-const task87 = products
-    .filter(p => p.stock > 0)
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 3)
-    .map(({ name, price, stock }) => ({ name, price, stock }));
-console.log(task87);
+function searchProducts(productList, searchTerm) {
+    const term = searchTerm.trim().toLowerCase();
+    return term
+        ? productList.filter(product => product.name.toLowerCase().includes(term))
+        : [];
+}
 
-const task88 = products
-    .filter(p => p.brand === "Apple" && p.price > 5000)
-    .map(({ name, price, rating }) => ({ name, price, rating }));
-console.log(task88);
+function filterByCategory(productList, category) {
+    return productList.filter(product => product.category === category);
+}
 
-const task89 = products.reduce((val, p) => {
-    val[p.category] = (val[p.category] || 0) + p.price * p.stock;
-    return val;
-}, { Electronics: 0, Accessories: 0, Audio: 0 });
-console.log(task89);
+function filterByMinimumPrice(productList, minimumPrice) {
+    return productList.filter(product => product.price >= minimumPrice);
+}
 
-const task90 = {
+function filterByMaximumPrice(productList, maximumPrice) {
+    return productList.filter(product => product.price <= maximumPrice);
+}
 
-    totalProducts: products.length,
-    totalStock: products.reduce((sum, p) => sum + p.stock, 0),
-    totalInventoryValueproducts: products.reduce((sum, p) => sum + p.price * p.stock, 0),
-    averageRating: +(products.reduce((sum, p) => sum + p.rating, 0) / products.length).toFixed(2),
-    mostExpensiveProduct: products.reduce((max, p) => (p.price > max.price ? p : max), products[0]),
-    cheapestProduct: products.reduce((min, p) => (p.price < min.price ? p : min), products[0])
+function sortByPriceAscending(productList) {
+    return [...productList].sort((a, b) => a.price - b.price);
+}
+
+function sortByPriceDescending(productList) {
+    return [...productList].sort((a, b) => b.price - a.price);
+}
+
+function sortByRating(productList) {
+    return [...productList].sort((a, b) => b.rating - a.rating);
+}
+
+function getInStockProducts(productList) {
+    return productList.filter(product => product.stock > 0);
+}
+
+function getMostExpensiveProduct(productList) {
+    return productList.reduce((mostExpensive, product) =>
+        !mostExpensive || product.price > mostExpensive.price ? product : mostExpensive, null);
+}
+
+function getHighestRatedProduct(productList) {
+    return productList.reduce((highestRated, product) =>
+        !highestRated || product.rating > highestRated.rating ? product : highestRated, null);
+}
+
+function getTotalInventoryValue(productList) {
+    return productList.reduce((total, product) => total + product.price * product.stock, 0);
+}
+
+function countProductsByCategory(productList) {
+    return productList.reduce((counts, product) => {
+        counts[product.category] = (counts[product.category] || 0) + 1;
+        return counts;
+    }, {});
+}
+
+function addProductToCart(cart, product, quantity = 1) {
+    if (quantity < 1) return cart;
+
+    const existingItem = cart.find(item => item.product.id === product.id);
+    if (existingItem) {
+        existingItem.quantity += quantity;
+    } else {
+        cart.push({ product, quantity });
+    }
+    return cart;
+}
+
+function increaseProductQuantity(cart, productId, quantity = 1) {
+    const item = cart.find(cartItem => cartItem.product.id === productId);
+    if (item && quantity > 0) item.quantity += quantity;
+    return cart;
+}
+
+function decreaseProductQuantity(cart, productId, quantity = 1) {
+    const item = cart.find(cartItem => cartItem.product.id === productId);
+    if (item && quantity > 0) item.quantity = Math.max(0, item.quantity - quantity);
+    return cart.filter(cartItem => cartItem.quantity > 0);
+}
+
+function removeProductFromCart(cart, productId) {
+    return cart.filter(item => item.product.id !== productId);
+}
+
+function getCartTotal(cart) {
+    return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
+}
+
+function getCartItemCount(cart) {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+}
+
+function getDiscountedCartTotal(cart) {
+    const total = getCartTotal(cart);
+    return total > 50000 ? total * 0.9 : total;
+}
+
+const cart = [];
+addProductToCart(cart, products[0]);
+addProductToCart(cart, products[0]);
+increaseProductQuantity(cart, products[0].id);
+decreaseProductQuantity(cart, products[0].id);
+
+console.log(displayProducts(products));
+console.log(searchProducts(products, "phone"));
+console.log(filterByCategory(products, "Audio"));
+console.log(filterByMinimumPrice(products, 50000));
+console.log(filterByMaximumPrice(products, 10000));
+console.log(sortByPriceAscending(products));
+console.log(sortByPriceDescending(products));
+console.log(sortByRating(products));
+console.log(getInStockProducts(products));
+console.log(getMostExpensiveProduct(products));
+console.log(getHighestRatedProduct(products));
+console.log(getTotalInventoryValue(products));
+console.log(countProductsByCategory(products));
+console.log(getCartTotal(cart));
+console.log(getCartItemCount(cart));
+console.log(getDiscountedCartTotal(cart));
+console.log(searchProducts(products, "does-not-exist"));
+console.log(getCartTotal([]));
+
+module.exports = {
+    products,
+    displayProducts,
+    searchProducts,
+    filterByCategory,
+    filterByMinimumPrice,
+    filterByMaximumPrice,
+    sortByPriceAscending,
+    sortByPriceDescending,
+    sortByRating,
+    getInStockProducts,
+    getMostExpensiveProduct,
+    getHighestRatedProduct,
+    getTotalInventoryValue,
+    countProductsByCategory,
+    addProductToCart,
+    increaseProductQuantity,
+    decreaseProductQuantity,
+    removeProductFromCart,
+    getCartTotal,
+    getCartItemCount,
+    getDiscountedCartTotal
 };
-console.log(task90);
-
-const task91 = products
-    .filter(p => p.stock > 0 && p.rating >= 4.5 && p.price < 50000)
-    .map(({ name, price, rating }) => ({ name, price, rating }));
-console.log(task91);
-
-const task92 = products.map(p => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    price: p.price,
-    isAvailable: p.stock > 0,
-    PriceLevel: p.price < 10000 ? "LOW" : p.price < 50000 ? "MEDIUM" : "HIGH"
-}));
-console.log(task92);
 
 
 

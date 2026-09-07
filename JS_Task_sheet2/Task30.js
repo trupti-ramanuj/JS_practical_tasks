@@ -7,7 +7,6 @@ const employees = [
     { name: 'Sara', department: 'HR', salary: 65000 },
 ];
 
-// 1–5. Group and calculate department statistics
 const departmentStats = employees.reduce((acc, employee) => {
     const { department, salary } = employee;
 

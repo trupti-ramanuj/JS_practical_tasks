@@ -101,6 +101,8 @@ const products = [
     }
 ];
 
+const originalSnapshot = JSON.stringify(products);
+
 const task97 = products.map(p => ({
     id: p.id,
     title: p.name,
@@ -139,4 +141,4 @@ console.log(task100);
 const finalSnapshot = JSON.stringify(products);
 const wasOriginalMutated = originalSnapshot !== finalSnapshot;
 
-console.log(wasOriginalMutated ? "FAIL (Mutated)" : "SUCCESS (Completely Unchanged)");
+console.log(wasOriginalMutated ? "FAIL " : "SUCCESS (Completely Unchanged)");
