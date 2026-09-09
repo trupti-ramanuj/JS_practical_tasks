@@ -58,3 +58,12 @@ const hrp = products.reduce((max, p) => (p.rating > max.rating ? p : max), produ
 console.log(hrp);
 
 //12. Calculate the total inventory value.
+
+//21. Apply a 10% discount when cart total is above 50000.
+const disc = products
+    .filter(p => p.price > 5000)
+    .map(p => ({
+        id: p.id,
+        dicountedPrice: (p.price * 0.9)
+    }));
+console.log(disc);
